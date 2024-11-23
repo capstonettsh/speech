@@ -1,3 +1,4 @@
+0. have to open docker desktop (and optionall offset explorer 3)
 1. load up the springboot project
 2. add openai key to application.properties file
 3. run KafkaApplpication.java
