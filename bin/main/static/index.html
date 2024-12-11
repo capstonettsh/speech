@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HumeAI Voice Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #messages {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #startButton, #stopButton {
+            padding: 10px 20px;
+        }
+        .message {
+            margin: 5px 0;
+        }
+        .user-message {
+            text-align: right;
+            color: blue;
+        }
+        .evi-message {
+            text-align: left;
+            color: green;
+        }
+
+
+
+
+
+    </style>
+</head>
+<body>
+<h1>HumeAI Voice Chat</h1>
+<div id="messages"></div>
+<button id="startButton">Start Recording</button>
+<button id="stopButton" disabled>Stop Recording</button>
+
+<script>
+        var ws = new WebSocket("ws://localhost:8080/v0/chat");
+        var audioContext;
+        var mediaRecorder;
+
+        ws.onopen = function() {
+            console.log("Connected to server");
+        };
+
+        ws.onmessage = function(event) {
+            if (typeof event.data === 'string') {
+                // Parse the JSON message
+                var message = JSON.parse(event.data);
+                if (message.type === 'audio_output') {
+                    // Extract the base64-encoded audio data
+                    var base64Data = message.data;
+
+                    // Decode the base64 string
+                    var audioData = base64ToArrayBuffer(base64Data);
+
+                    // Play the audio
+                    playAudio(audioData);
+                } else {
+                    // Handle other message types if necessary
+                    console.log("Received message:", message);
+                }
+            }
+        };
+
+        ws.onclose = function() {
+            console.log("Disconnected from server");
+        };
+
+        document.getElementById('startButton').addEventListener('click', startRecording);
+        document.getElementById('stopButton').addEventListener('click', stopRecording);
+
+        function startRecording() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('startButton').disabled = true;
+            document.getElementById('stopButton').disabled = false;
+
+            navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                // mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                mediaRecorder = new MediaRecorder(stream);
+
+
+                mediaRecorder.onstart = function() {
+                    console.log('Recording started.');
+                };
+
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+                        // Send the audio data to the backend
+                        event.data.arrayBuffer().then(buffer => {
+                            ws.send(buffer);
+                        });
+                    }
+                };
+
+                mediaRecorder.onstop = function() {
+                    console.log('Recording stopped.');
+                };
+
+                mediaRecorder.start(100); // Collect data every 100ms
+            })
+            .catch(error => {
+                console.error('Error accessing microphone:', error);
+            });
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            document.getElementById('startButton').disabled = false;
+            document.getElementById('stopButton').disabled = true;
+        }
+
+        var audioQueue = [];
+        var isPlaying = false;
+
+        function playAudio(arrayBuffer) {
+            // Add the audio data to the queue
+            audioQueue.push(arrayBuffer);
+
+            // If nothing is currently playing, start playing the next audio in the queue
+            if (!isPlaying) {
+                playNextAudio();
+            }
+        }
+
+        function playNextAudio() {
+            if (audioQueue.length === 0) {
+                isPlaying = false;
+                return;
+            }
+
+            var arrayBuffer = audioQueue.shift(); // Get the next audio data from the queue
+            isPlaying = true;
+
+            audioContext.decodeAudioData(arrayBuffer, function(buffer) {
+                var source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+
+                // When the audio finishes playing, try to play the next one
+                source.onended = function() {
+                    isPlaying = false;
+                    playNextAudio();
+                };
+            }, function(e) {
+                console.error("Error decoding audio data:", e);
+                // Ensure that even if there's an error, we attempt to play the next audio
+                isPlaying = false;
+                playNextAudio();
+            });
+        }
+
+        // Helper function to decode base64 to ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            var binaryString = atob(base64);
+            var len = binaryString.length;
+            var bytes = new Uint8Array(len);
+            for (var i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+
+</script>
+</body>
+</html>
