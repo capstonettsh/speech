@@ -1,0 +1,31 @@
+version: '3.1'
+
+services:
+  # We are removing the old "zookeeper" and "kafka" services
+  # and replacing them with a single "fast-data-dev" container.
+  fast-data-dev:
+    container_name: fast-data-dev  # Good to give it a unique name
+    image: landoop/fast-data-dev:latest
+    ports:
+      # Expose the main ports you need:
+      # 2181 = Zookeeper
+      # 3030 = Landoop UI
+      # 8081,8082,8083 = REST Proxy, Kafka Connect, etc.
+      # 9092 = Kafka Broker
+      - "2181:2181"
+      - "3030:3030"
+      - "8081:8081"
+      - "8082:8082"
+      - "8083:8083"
+      - "9092:9092"
+    environment:
+      # Tells Kafka which host/IP to advertise for external connections
+      ADV_HOST: 127.0.0.1
+      # Disables their internal tests on container startup to speed things up
+      RUNTESTS: 0
+      # Optional - if you want bigger message sizes:
+      # KAFKA_MESSAGE_MAX_BYTES: 536870912
+      # KAFKA_REPLICA_FETCH_MAX_BYTES: 536870912
+      # KAFKA_FETCH_MAX_BYTES: 536870912
+      # KAFKA_SOCKET_REQUEST_MAX_BYTES: 536870912
+    # If you like, add logging or volumes, but not strictly required.

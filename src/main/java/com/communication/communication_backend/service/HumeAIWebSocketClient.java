@@ -48,7 +48,7 @@ public class HumeAIWebSocketClient extends WebSocketClient {
             // Parse the JSON message
             JsonNode rootNode = objectMapper.readTree(message);
             String type = rootNode.get("type").asText();
-            System.out.println(message);
+            // System.out.println(message); //prevent printing voice blob to console
 
             if ("audio_output".equals(type)) {
                 frontendSession.sendMessage(new TextMessage(message));

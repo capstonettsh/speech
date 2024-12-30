@@ -1,15 +1,16 @@
 package com.communication.communication_backend.kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class OpenAiClient {
@@ -30,7 +31,7 @@ public class OpenAiClient {
     public String getEmpathyRating(String conversation) throws Exception {
         String prompt = "Evaluate the empathy level in the following conversation:\n\n" +
                         conversation +
-                        "\n\nProvide a rating between 1 and 10, with 10 being highly empathetic.";
+                        "\n\nProvide a rating between 1 and 10, with 10 being highly empathetic. You are to provide exactly one rating and exactly one line that justifies your rating as concisely as possible.";
 
         Map<String, Object> requestBody = Map.of(
             "model", "gpt-4o-mini",
