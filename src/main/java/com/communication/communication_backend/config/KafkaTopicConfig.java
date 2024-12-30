@@ -31,4 +31,10 @@ public class KafkaTopicConfig {
     public NewTopic gptResponsesTopic() {
         return TopicBuilder.name("gpt-responses").partitions(1).replicas(1).build();
     }
+
+    // final review
+    @Bean
+    public NewTopic speechFinalTopic() {
+        return TopicBuilder.name("speech-final").partitions(1).replicas(1).build();
+    }
 }

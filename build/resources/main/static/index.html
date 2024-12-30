@@ -173,5 +173,70 @@
 
 
 </script>
+
+<!-- Add these new elements somewhere in your index.html body -->
+<div id="finalSummaryContainer" style="border: 1px solid #ccc; padding: 10px; margin-top: 20px;">
+    <h3>Final Summary (Speech + Empathy):</h3>
+    <div id="finalSummaryText"></div>
+
+    <h3>Top 3 Mistakes:</h3>
+    <ol id="topMistakesList"></ol>
+</div>
+
+<script>
+    // We'll poll /api/speechFinal every 5 seconds to get the latest summary
+    function fetchSpeechFinalSummary() {
+        fetch('/api/speechFinal')
+            .then(response => response.json())
+            .then(data => {
+                // data is { trailingSummary: "...", top3Mistakes: [...] }
+                const finalSummaryText = data.trailingSummary || "";
+                document.getElementById('finalSummaryText').innerText = finalSummaryText;
+
+                // top3Mistakes can be an array
+                const mistakesContainer = document.getElementById('topMistakesList');
+                mistakesContainer.innerHTML = "";
+                if (Array.isArray(data.top3Mistakes)) {
+                    data.top3Mistakes.forEach(m => {
+                        // m might have: { mistakeText, exchangeRef }
+                        // We'll show them in a single line, e.g. "mistakeText (found in exchangeRef)"
+                        const li = document.createElement('li');
+                        const text = m.mistakeText || "[No text]";
+                        const ref = m.exchangeRef || "unknown";
+                        li.innerText = text + " [in " + ref + "]";
+                        mistakesContainer.appendChild(li);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching speechFinal:", err);
+            });
+    }
+
+    // After fetching the final JSON from 'speech-final'
+    function displaySpeechFinalData(data) {
+    let summary = data.trailingSummary || "No summary";
+    document.getElementById("summaryDiv").innerText = summary;
+
+    let mistakes = data.top3Mistakes || [];
+    let html = "Top 3 Mistakes in conversation:<br/>";
+    for (let i = 0; i < mistakes.length; i++) {
+        let mk = mistakes[i];
+        html += (i+1) + ") " + mk.mistakeText + "<br>";
+        html += "&nbsp;&nbsp;Exchange: " + mk.exchangeRef + "<br><br>";
+    }
+    if (mistakes.length === 0) {
+        html += "None so far.<br>";
+    }
+    document.getElementById("mistakesDiv").innerHTML = html;
+    }
+
+    // Start polling every 5 seconds
+    setInterval(fetchSpeechFinalSummary, 5000);
+
+    // Optionally, you can call it immediately once
+    fetchSpeechFinalSummary();
+</script>
+
 </body>
 </html>
